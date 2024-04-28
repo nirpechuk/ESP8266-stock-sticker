@@ -43,7 +43,7 @@ const char* setup_password = "123456789";
 IPAddress apIP;
 AsyncWebServer server(80);
 
-#define API_TOKEN "c1tjb52ad3ia4h4uee9g" // get your key by going to https://www.finnhub.io/register
+#define API_TOKEN "[insert your code here]" // get your key by going to https://www.finnhub.io/register
 
 ESP8266WiFiMulti WiFiMulti;
 
