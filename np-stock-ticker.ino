@@ -1,3 +1,4 @@
+
 #include <Arduino.h>
 
 #include <ESP8266WiFi.h>
@@ -19,7 +20,7 @@
 
 // ---- button/switch definitions
 
-#define BUTTON D5
+#define SWITCH D5
 
 // ---- display definitions
 
@@ -61,9 +62,7 @@ struct ConfigurationObject {
 
 ConfigurationObject currentConfiguration;
 
-void notFound(AsyncWebServerRequest *request) {
-    request->send(404, "text/plain", "Not found, try \\");
-}
+void(* forceReset) (void) = 0;
 
 // display setup information
 void displaySetupInformation(const char* ssid, const char* password, const char* ip) {
@@ -106,6 +105,9 @@ ConfigurationObject readConfigurationFromEEPROM() {
   return configuration;
 }
 
+void notFound(AsyncWebServerRequest *request) {
+    request->send(404, "text/plain", "Not found, try \\");
+}
 
 void setup_configuration_network() {
   
@@ -161,7 +163,7 @@ void setup_configuration_network() {
         Serial.println("New tickerName is " + tickerName);
       } 
       writeToEEPROM(networkName, networkPass, tickerName);
-      request->send(200, "text/plain", "Updated succesfully - please restart ticker now.");
+      request->send(200, "text/plain", "Updated succesfully - please flip switch to restart ticker now.");
   });
 
   server.onNotFound(notFound);
@@ -228,10 +230,10 @@ void setup() {
   EEPROM.begin(sizeof(ConfigurationObject));
 
   // init setup switch and determine if in setup mode 
-  pinMode(BUTTON, INPUT_PULLUP);
-  digitalWrite(BUTTON, HIGH); //activate arduino internal pull up
-  if (digitalRead(BUTTON)==LOW){
-      Serial.println("Button is pressed entering setup mode");
+  pinMode(SWITCH, INPUT_PULLUP);
+  digitalWrite(SWITCH, HIGH); //activate arduino internal pull up
+  if (digitalRead(SWITCH)==LOW){
+      Serial.println("Switch is on--entering setup mode");
       setupMode = true;
   }
 
@@ -260,11 +262,22 @@ void setup() {
 void loop() {
 
   if (setupMode) {
+    if (digitalRead(SWITCH)==HIGH){
+      Serial.println("Switch is off, exiting setup mode");
+      setupMode = false;
+      forceReset();
+    }
     Serial.print("AP IP address: ");
     Serial.println(apIP);
     Serial.println("Setup mode.");
     delay(1000);
     return;
+  }
+
+  if (digitalRead(SWITCH)==LOW){
+      Serial.println("Switch is on, entering setup mode");
+      setupMode = true;
+      forceReset();
   }
 
   // wait for WiFi connection
@@ -315,4 +328,3 @@ void loop() {
   Serial.println("Wait 60s before next round...");
   delay(REFRESH_DELAY_MS);
 }
-
